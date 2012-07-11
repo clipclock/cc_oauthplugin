@@ -44,11 +44,9 @@ class sfOauthApplicationActions extends sfActions
 			$oauth->authorizeApplication($this->consumer['consumer_key'], $user_id, $this->consumer['scope']);
 		}
 
-		if($oauth->isApplicationAuthorized($client_id, $user_id, $this->consumer['scope']))
-		{
-			$this->result = $oauth->finishClientAuthorization(1, array_merge($_GET, array('redirect_uri' => $this->redirect_uri, 'scope' => $this->consumer['scope'])));
-			return self::ACTION_AUTH_RESPONSE;
-		}
+		$this->result = $oauth->finishClientAuthorization(1, array_merge($_GET, array('redirect_uri' => $this->redirect_uri, 'scope' => $this->consumer['scope'])));
+		return self::ACTION_AUTH_RESPONSE;
+
 	}
 
 	public function executeDeauthorize(sfWebRequest $request)
