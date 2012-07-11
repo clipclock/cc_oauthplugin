@@ -38,33 +38,17 @@ class sfOauthApplicationActions extends sfActions
 
 		$oauth = new sfOAuth2PersistentServer();
 		$oauth->setUserId($user_id);
-		if($request->isMethod(sfRequest::POST))
+
+		if (!$oauth->isApplicationAuthorized($client_id, $user_id, $this->consumer['scope']))
 		{
-			if($request->getParameter('accept') == 'Yes')
-			{
-				$oauth->authorizeApplication($this->consumer['consumer_key'], $user_id, $this->consumer['scope']);
-				$this->result = $oauth->finishClientAuthorization(
-																	$request->getParameter('accept') == 'Yes',
-																	array_merge(
-																				$_POST,
-																				array(
-																						'redirect_uri' => $this->redirect_uri,
-																						'scope' => $this->consumer['scope']
-																					)
-																				)
-																);
-
-				return self::ACTION_AUTH_RESPONSE;
-			}
-		}
-		else {
-			if(false || $oauth->isApplicationAuthorized($client_id, $user_id, $this->consumer['scope']))
-			{
-				$this->result = $oauth->finishClientAuthorization(1, array_merge($_GET, array('redirect_uri' => $this->redirect_uri, 'scope' => $this->consumer['scope'])));
-				return self::ACTION_AUTH_RESPONSE;
-			}
+			$oauth->authorizeApplication($this->consumer['consumer_key'], $user_id, $this->consumer['scope']);
 		}
 
+		if($oauth->isApplicationAuthorized($client_id, $user_id, $this->consumer['scope']))
+		{
+			$this->result = $oauth->finishClientAuthorization(1, array_merge($_GET, array('redirect_uri' => $this->redirect_uri, 'scope' => $this->consumer['scope'])));
+			return self::ACTION_AUTH_RESPONSE;
+		}
 	}
 
 	public function executeDeauthorize(sfWebRequest $request)
