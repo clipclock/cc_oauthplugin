@@ -28,6 +28,7 @@ class sfOauthAuthActions extends sfActions
 	  */
 	public function executeAccessToken(sfWebRequest $request)
 	{
+
 		$req = OAuthRequest::from_request(NULL, $request->getUri()); // To get variable in header
 
 		if($req->get_parameter('oauth_version') == '1.0')

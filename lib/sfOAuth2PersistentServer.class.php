@@ -74,12 +74,14 @@ class sfOAuth2PersistentServer extends OAuth2
 	 */
 	protected function setAccessToken($oauth_token, $client_id, $expires, $scope = NULL)
 	{
-		$this->db->set("tokens:$oauth_token", array(
+		$expires = OAUTH2_DEFAULT_REFRESH_TOKEN_LIFETIME;
+
+		$this->db->setAndExpire("tokens:$oauth_token", array(
 												   "client_id" => $client_id,
 												   "user_id" => $this->user_id,
-												   "expires" => $expires,
+												   "expires" => time() + $expires,
 												   "scope" => $scope
-											  ));
+											  ), $expires);
 	}
 
 	/**
@@ -113,6 +115,8 @@ class sfOAuth2PersistentServer extends OAuth2
 	protected function setAuthCode($code, $consumer_key, $redirect_uri, $expires, $scope = NULL)
 	{
 
+		//@TODO: must delete * 10000 for production purposes
+		
 		$expires = OAUTH2_DEFAULT_AUTH_CODE_LIFETIME * 10000;
 
 		$this->db->setAndExpire("auth_codes:$code", array(
