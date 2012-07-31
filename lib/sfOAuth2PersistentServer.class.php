@@ -16,6 +16,7 @@ class sfOAuth2PersistentServer extends OAuth2
 {
 	private $db;
 	private $user_id;
+	protected $_access_token_lifetime = 1209600;
 
 	/**
 	 * Overrides OAuth2::__construct().
@@ -24,6 +25,31 @@ class sfOAuth2PersistentServer extends OAuth2
 	{
 		parent::__construct();
 		$this->db = sfRediska::getInstance('app');
+	}
+
+	protected function createAccessToken($client_id, $scope = NULL)
+	{
+		$token = array(
+			"access_token" => $this->genAccessToken(),
+			"expires_in" => $this->getVariable('access_token_lifetime', $this->_access_token_lifetime),
+			"scope" => $scope
+		);
+
+		$this->setAccessToken($token["access_token"], $client_id, $this->getVariable('access_token_lifetime', $this->_access_token_lifetime), $scope);
+
+		// Issue a refresh token also, if we support them
+		if(in_array(OAUTH2_GRANT_TYPE_REFRESH_TOKEN, $this->getSupportedGrantTypes()))
+		{
+			$token["refresh_token"] = $this->genAccessToken();
+			$this->setRefreshToken($token["refresh_token"], $client_id, time() + $this->getVariable('refresh_token_lifetime', OAUTH2_DEFAULT_REFRESH_TOKEN_LIFETIME), $scope);
+			// If we've granted a new refresh token, expire the old one
+			if($this->getVariable('_old_refresh_token'))
+			{
+				$this->unsetRefreshToken($this->getVariable('_old_refresh_token'));
+			}
+		}
+
+		return $token;
 	}
 
 
@@ -74,12 +100,12 @@ class sfOAuth2PersistentServer extends OAuth2
 	 */
 	protected function setAccessToken($oauth_token, $client_id, $expires, $scope = NULL)
 	{
-		$this->db->set("tokens:$oauth_token", array(
+		$this->db->setAndExpire("tokens:$oauth_token", array(
 												   "client_id" => $client_id,
 												   "user_id" => $this->user_id,
-												   "expires" => $expires,
+												   "expires" => time() + $expires,
 												   "scope" => $scope
-											  ));
+											  ), $expires);
 	}
 
 	/**
@@ -113,7 +139,7 @@ class sfOAuth2PersistentServer extends OAuth2
 	protected function setAuthCode($code, $consumer_key, $redirect_uri, $expires, $scope = NULL)
 	{
 
-		$expires = OAUTH2_DEFAULT_AUTH_CODE_LIFETIME * 10000;
+		$expires = OAUTH2_DEFAULT_AUTH_CODE_LIFETIME;
 
 		$this->db->setAndExpire("auth_codes:$code", array(
 														 "client_id" => $consumer_key,
